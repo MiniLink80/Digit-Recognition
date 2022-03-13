@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import gzip
+import pickle
 import copy
 
 IMG_DIM = 28
@@ -84,23 +85,10 @@ def predict(w,b,x):
 
 #Combines all previous functions to adjust w and b, get the accuracy of the new values and store
 #them into a file for future use
-def run(w,b,trainImages,trainLabels,testImages,testLabels,iterations, learningRate, reuseData = True):
-    if reuseData:
-        with open('data/params.txt', 'r') as f:
-            lines = f.readlines()
-            if not len(lines) < 10:
-                for i in range(NUM_PX):
-                    w[i][0] = float(lines[i])
-                b = float(lines[NUM_PX])
-    
+def run(w,b,trainImages,trainLabels,testImages,testLabels,iterations, learningRate):
     params, grads, costs = optimize(w,b,trainImages,trainLabels,iterations, learningRate, True)
     w = params["w"]
     b = params["b"]
-    
-    with open("data/params.txt", "w") as f:
-        for i in range(NUM_PX):
-            f.write(str(w[i][0])+"\n")
-        f.write(str(b))
 
     trainPrediction = predict(w,b,trainImages)
     testPrediction = predict(w,b,testImages)
@@ -112,18 +100,22 @@ def run(w,b,trainImages,trainLabels,testImages,testLabels,iterations, learningRa
     print("test accuracy: {} %".format(100*np.sum(testLabels == testPrediction)/len(testLabels)))
     return params
 
-    
-trainImages = decode_image_file('data/train-images-idx3-ubyte.gz')/255.0
-trainLabels = decode_label_file('data/train-labels-idx1-ubyte.gz')/9.0
-testImages = decode_image_file('data/t10k-images-idx3-ubyte.gz')/255.0
-testLabels = decode_label_file('data/t10k-labels-idx1-ubyte.gz')/9.0
+if __name__ == "__main__":
+    trainImages = decode_image_file('data/train-images-idx3-ubyte.gz')/255.0
+    trainLabels = decode_label_file('data/train-labels-idx1-ubyte.gz')/9.0
+    testImages = decode_image_file('data/t10k-images-idx3-ubyte.gz')/255.0
+    testLabels = decode_label_file('data/t10k-labels-idx1-ubyte.gz')/9.0
 
-trainImages = trainImages[:TRAINING_SAMPLES]
-trainLabels = np.reshape(trainLabels[:TRAINING_SAMPLES], (TRAINING_SAMPLES,1))
-testImages = testImages
-testLabels = np.reshape(testLabels, (len(testLabels),1))
+    trainLabels = np.reshape(trainLabels[:TRAINING_SAMPLES], (TRAINING_SAMPLES,1))
+    testLabels = np.reshape(testLabels, (len(testLabels),1))
 
-w = np.zeros((NUM_PX,1))
-b = 10.0
+    params = pickle.load(open('data/params.pkl', 'rb'))
 
-params = run(w,b,trainImages,trainLabels,testImages,testLabels,100, 0.003, True)
+    #w = np.zeros((NUM_PX,1))
+    #b = 10.0
+    w = params["w"]
+    b = params["b"]
+
+    params = run(w, b, trainImages, trainLabels, testImages, testLabels, 100, 0.003)
+
+    pickle.Pickler(open('data/params.pkl', 'wb')).dump(params)
